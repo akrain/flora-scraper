@@ -64,7 +64,7 @@ def scrape_flower_page(flower: Flower) -> Flower:
     return flower
 
 def main():
-    flowers = scrape_flower_links()[:10]
+    flowers = scrape_flower_links()
     results = []
 
     for i, flower in enumerate(flowers,):
