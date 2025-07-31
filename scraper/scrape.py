@@ -1,12 +1,12 @@
-from operator import contains
+import csv
+import re
+import time
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
-import time
-import csv
+
 from models import Flower
-import re
 
 BASE_URL = "https://www.flowersofindia.net/"
 FLOWER_LIST_URL = BASE_URL + "hwf/botanical.html"
@@ -69,6 +69,10 @@ def construct_default_url(flower: Flower):
 
 
 def construct_all(matches):
+    """
+    There can be two types of image paths. Construct the full Url based on the
+    type of Url present
+    """
     urls = []
     for match in matches:
         filename = match[0]
@@ -80,6 +84,10 @@ def construct_all(matches):
 
 
 def construct_image_urls(matches: list, flower: Flower) -> list :
+    """
+    Image Urls are present in the script tag only when there is more than 1 image.
+    If not present, we can still construct 1 URl by convention
+    """
     if matches:
         return construct_all(matches)
     else:
@@ -92,11 +100,21 @@ def add_more_details(flower: Flower):
     and adds the flower description and image urls from there.
     """
     try:
-        resp = requests.get(flower.url)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Connection': 'keep-alive',
+            'Host': 'www.flowersofindia.net',
+        }
+        resp = requests.get(flower.url, headers=headers, timeout=30)
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
+        ascii_text = resp.text.encode('ascii', errors='ignore').decode('ascii')
+        soup = BeautifulSoup(ascii_text, "html.parser")
         desc_elem = soup.find("div", {"id": "descr"})
-        flower.description = desc_elem.get_text(strip=True) if desc_elem is not None else None
+        if desc_elem is None:
+            desc_elem = soup.find("div", {"align": "justify"})
+        flower.description = desc_elem.get_text(strip=True)
         image_urls = construct_image_urls(extract_image_names(soup), flower)
         # At least 1 image url should always exist
         flower.image1_url = image_urls[0]
@@ -111,10 +129,10 @@ def add_more_details(flower: Flower):
 def main():
     flowers = scrape_flower_links()
 
-    for i, flower in enumerate(flowers,):
+    for i, flower in enumerate(flowers):
         print(f"[{i + 1}/{len(flowers)}] Scraping {flower.botanical_name} ...")
         add_more_details(flower)
-        time.sleep(1)  # Be polite. Sleep few secs between requests
+        time.sleep(1)  # Be polite. Sleep some time between requests
 
     save_results(flowers)
 
@@ -124,18 +142,16 @@ def copy_details(details, flower):
 
 
 def save_results(results):
+    if not results:
+        return
     # Save results to CSV
-    with open("flowers_dataset.csv", "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["botanical_name", "common_name", "url", "description"])
+    with open("../data/foi_himalayan_flowers.csv", "w", newline="", encoding="utf-8") as f:
+        fieldnames = list(vars(results[0]).keys())
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for flower in results:
-            writer.writerow({
-                "botanical_name": flower.botanical_name,
-                "common_name": flower.common_name,
-                "url": flower.url,
-                "description": flower.description
-            })
-    print("Scraping complete. Data saved to flowers_dataset.csv.")
+            writer.writerow(vars(flower))
+    print("Scraping complete. Data saved to foi_himalayan_flowers.csv.")
 
 
 if __name__ == "__main__":
