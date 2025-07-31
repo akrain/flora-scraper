@@ -11,13 +11,14 @@ A Python web scraper for extracting flower information from flowersofindia.net.
 ## Usage
 
 ```bash
-python scraper/scrape.py
+cd scraper
+python scrape.py
 ```
 
 The scraper will:
 1. Fetch the flower listing page
 2. Extract details for each flower including images
-3. Save results to `flowers.csv`
+3. Save results to `data/foi_himalayan_flowers.csv`
 
 ## Requirements
 
