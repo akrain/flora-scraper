@@ -68,14 +68,14 @@ def construct_default_url(flower: Flower):
     return [BASE_URL + SLIDE_PATH + flower.common_name + ".jpg"]
 
 
-def construct_all(matches):
+def construct_all(images):
     """
     There can be two types of image paths. Construct the full Url based on the
     type of Url present
     """
     urls = []
-    for match in matches:
-        filename = match[0]
+    for image in images:
+        filename = image[0]
         if EXTRAPICS in filename:
             urls.append(BASE_URL + filename)
         else:
@@ -83,13 +83,13 @@ def construct_all(matches):
     return urls
 
 
-def construct_image_urls(matches: list, flower: Flower) -> list :
+def construct_image_urls(images: list, flower: Flower) -> list :
     """
     Image Urls are present in the script tag only when there is more than 1 image.
     If not present, we can still construct 1 URl by convention
     """
-    if matches:
-        return construct_all(matches)
+    if images:
+        return construct_all(images)
     else:
         return construct_default_url(flower)
 
